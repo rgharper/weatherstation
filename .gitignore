@@ -1,4 +1,4 @@
 /serviceASYNC
 /serviceOLD
-service/env
-service/settings.ini
+/service/env
+/service/settings.ini
