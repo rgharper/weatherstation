@@ -1,6 +1,4 @@
-import smbus2, time, sys, math
-
-
+import smbus2
 
 class as5600:
         def __init__(self, bus, address=0x36):

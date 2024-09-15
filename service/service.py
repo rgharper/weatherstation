@@ -1,7 +1,5 @@
-import threading
-import time
+import configparser, mariadb, os, time, threading
 from modules import dht20, as5600
-import configparser, mariadb, os
 
 cfg = configparser.ConfigParser()
 cfg.read(os.path.join(os.path.dirname(__file__), "settings.ini"))
