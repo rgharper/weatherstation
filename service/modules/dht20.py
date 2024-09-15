@@ -10,7 +10,6 @@
   *@get from https://www.dfrobot.com
   *@https://github.com/DFRobot/DFRobot_DHT20
 """
-import serial
 import time
 import smbus2 as smbus
                 
