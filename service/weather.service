@@ -1,0 +1,19 @@
+[Unit]
+Description=this is the weather service!1
+After=network.target
+
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+User=root
+Group=www-data
+WorkingDirectory=/home/rohan/weatherstation/service/
+Environment="PATH=/home/rohan/weatherstation/service/env/bin"
+ExecStart= /home/rohan/weatherstation/service/env/bin/python /home/rohan/weatherstation/service/service.py
+
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
