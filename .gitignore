@@ -2,3 +2,4 @@
 /serviceOLD
 /service/env
 /service/settings.ini
+service/modules/__pycache__
