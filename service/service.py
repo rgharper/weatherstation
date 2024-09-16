@@ -32,13 +32,13 @@ def speed_daemon(sensor:as5600.as5600):
             time.sleep(0.1)
             angle = sensor.angle()-angle_offset
         speed_rpm = ((sensor.angle()-angle_offset)/360)/(time.time()-start)
-        wind_speed = speed_rpm*cfg["AS5600speed"]["factor"]
+        wind_speed = speed_rpm*int(cfg["AS5600speed"]["factor"])
         time.sleep(0.5)
 
 def direction_daemon(sensor:as5600.as5600):
     global wind_direction
     while running:
-        wind_direction = sensor.angle() - cfg["AS5600direction"]["offset"]
+        wind_direction = sensor.angle() - int(cfg["AS5600direction"]["offset"])
         time.sleep(0.5)
 
 try:
