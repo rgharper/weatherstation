@@ -27,6 +27,7 @@ def speed_daemon(sensor:as5600.as5600):
     while running:
         start = time.time()
         angle_offset = sensor.angle()
+        angle = 0
         while angle < 360:
             time.sleep(0.1)
             angle = sensor.angle()-angle_offset
