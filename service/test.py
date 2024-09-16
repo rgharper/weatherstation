@@ -49,7 +49,9 @@ def mean_speed():
         total = 0
         for speed in data:
             total += speed
-        return total/len(data)
+        return int(total/len(data))
+    else:
+        return None
 
 def direction_daemon(sensor:as5600.as5600):
     global wind_direction

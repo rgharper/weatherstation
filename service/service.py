@@ -20,26 +20,43 @@ def dht20_daemon(sensor:dht20.DHT20):
         temp = sensor.get_temperature()
         humidity = sensor.get_humidity()
         time.sleep(10)
+    print("dht20_daemon done")
 
 def speed_daemon(sensor:as5600.as5600):
     global speed_rpm
     global wind_speed
+    global list_wind_speed
     while running:
-        start = time.time()
-        angle_offset = sensor.angle()
-        angle = 0
-        while angle < 360:
-            time.sleep(0.1)
-            angle = sensor.angle()-angle_offset
-        speed_rpm = ((sensor.angle()-angle_offset)/360)/(time.time()-start)
-        wind_speed = speed_rpm*int(cfg["AS5600speed"]["factor"])
-        time.sleep(0.5)
+        now_time = time.time()
+        now_angle = sensor.angle()
+        time.sleep(0.05)
+        delta_angle = abs(sensor.angle()-now_angle)
+        delta_time = time.time()-now_time
+        rpm = (delta_angle/360)/delta_time
+        if delta_angle < 300:
+            wind_speed = rpm*int(cfg["AS5600speed"]["factor"])
+            list_wind_speed.append(wind_speed)
+            time.sleep(0.5)
+    print("speed_daemon done")
+
+def mean_speed():
+    global list_wind_speed
+    if list_wind_speed is not None:
+        data = list_wind_speed
+        list_wind_speed = []
+        total = 0
+        for speed in data:
+            total += speed
+        return int(total/len(data))
+    else:
+        return None
 
 def direction_daemon(sensor:as5600.as5600):
     global wind_direction
     while running:
         wind_direction = sensor.angle() - int(cfg["AS5600direction"]["offset"])
         time.sleep(0.5)
+    print("direction_daemon done")
 
 try:
     temp_humidity = dht20.DHT20(int(cfg["DHT20"]["bus"]), int(cfg["DHT20"]["address"]))
@@ -74,7 +91,7 @@ cur = conn.cursor()
 try:
     while running:
         sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection) VALUES (?, ?, ?, ?, ?, ?)"
-        data = (cfg["ALL"]["stationid"], temp, humidity, wind_speed, rainfall, wind_direction)
+        data = (cfg["ALL"]["stationid"], temp, humidity, mean_speed(), rainfall, wind_direction)
         cur.execute(sql, data)
         conn.commit()
         time.sleep(int(cfg["ALL"]["interval"]))
