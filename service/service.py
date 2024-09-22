@@ -47,7 +47,7 @@ def mean_speed():
         total = 0
         for speed in data:
             total += speed
-        return int(total/len(data))
+        return total/len(data)
     else:
         return None
 
