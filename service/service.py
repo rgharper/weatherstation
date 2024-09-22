@@ -6,6 +6,8 @@ cfg.read(os.path.join(os.path.dirname(__file__), "settings.ini"))
 
 temp, humidity, wind_speed, wind_direction, rainfall, speed_rpm = None, None, None, None, None, None
 
+list_wind_speed = []
+
 running = True
 
 if len(cfg) <= 2:
