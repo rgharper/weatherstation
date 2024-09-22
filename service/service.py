@@ -32,7 +32,7 @@ def speed_daemon(sensor:as5600.as5600):
         time.sleep(0.05)
         delta_angle = abs(sensor.angle()-now_angle)
         delta_time = time.time()-now_time
-        rpm = (delta_angle/360)/delta_time
+        rpm = ((delta_angle/360)/delta_time)*60
         if delta_angle < 300:
             wind_speed = rpm
             list_wind_speed.append(wind_speed)
