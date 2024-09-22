@@ -43,7 +43,7 @@ def speed_daemon(sensor:as5600.as5600):
 
 def mean_speed():
     global list_wind_speed
-    if list_wind_speed is not None and len(list_wind_speed > 0):
+    if list_wind_speed is not None and len(list_wind_speed) > 0:
         data = list_wind_speed
         list_wind_speed = []
         total = 0
