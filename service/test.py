@@ -56,7 +56,7 @@ def mean_speed():
 def direction_daemon(sensor:as5600.as5600):
     global wind_direction
     while running:
-        wind_direction = sensor.angle() - int(cfg["AS5600direction"]["offset"])
+        wind_direction = (sensor.angle() + int(cfg["AS5600direction"]["offset"]) + 360) % 360
         time.sleep(0.5)
     print("direction_daemon done")
 
