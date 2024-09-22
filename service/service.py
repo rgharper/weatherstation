@@ -61,7 +61,8 @@ def direction_daemon(sensor:as5600.as5600):
     print("direction_daemon done")
 
 def get_direction():
-    if mean_speed() < 0.5:
+    speed = mean_speed()
+    if speed is not None and speed < 0.5:
         return None
     else:
         return wind_direction
