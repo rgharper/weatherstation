@@ -60,6 +60,12 @@ def direction_daemon(sensor:as5600.as5600):
         time.sleep(0.5)
     print("direction_daemon done")
 
+def get_direction():
+    if mean_speed() < 0.5:
+        return None
+    else:
+        return wind_direction
+
 try:
     temp_humidity = dht20.DHT20(int(cfg["DHT20"]["bus"]), int(cfg["DHT20"]["address"]))
     threading.Thread(target=dht20_daemon, args=(temp_humidity,)).start()
@@ -94,7 +100,7 @@ try:
     time.sleep(10)
     while running:
         sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection) VALUES (?, ?, ?, ?, ?, ?)"
-        data = (cfg["ALL"]["stationid"], temp, humidity, mean_speed(), rainfall, wind_direction)
+        data = (cfg["ALL"]["stationid"], temp, humidity, mean_speed(), rainfall, get_direction())
         cur.execute(sql, data)
         conn.commit()
         time.sleep(int(cfg["ALL"]["interval"]))
