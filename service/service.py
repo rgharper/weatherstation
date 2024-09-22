@@ -89,6 +89,7 @@ conn = mariadb.connect(**conn_params)
 conn.auto_reconnect = True
 cur = conn.cursor()
 try:
+    time.sleep(10)
     while running:
         sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection) VALUES (?, ?, ?, ?, ?, ?)"
         data = (cfg["ALL"]["stationid"], temp, humidity, mean_speed(), rainfall, wind_direction)
