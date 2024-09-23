@@ -49,22 +49,27 @@ def wind_daemon(speed_sensor:as5600.as5600, dir_sensor:as5600.as5600):
     print("speed_daemon done")
 
 def get_wind():
-    list_speed = list_wind_speed
-    list_dir = list_wind_dir
-    avg_speed = avg(list_speed)
-    if avg_speed > 1:
-        avg_dir = avg(list_dir)
+    if wind:
+        list_speed = list_wind_speed
+        list_dir = list_wind_dir
+        list_wind_speed = []
+        list_wind_dir = []
+        avg_speed = avg(list_speed)
+        if avg_speed > 1:
+            avg_dir = avg(list_dir)
+        else:
+            avg_dir = None
+        
+        gust_range = 3
+        total = 0
+        for i in range(gust_range):
+            highest = max(list_speed)
+            total += highest
+            list_speed.remove(highest)
+        gust = total/gust_range
+        return avg_speed, avg_dir, gust
     else:
-        avg_dir = None
-    
-    gust_range = 3
-    total = 0
-    for i in range(gust_range):
-        highest = max(list_speed)
-        total += highest
-        list_speed.remove(highest)
-    gust = total/gust_range
-    return avg_speed, avg_dir, gust
+        return None, None, None
 
 def avg(data):
     total = 0
@@ -76,15 +81,19 @@ def avg(data):
 try:
     temp_humidity = dht20.DHT20(int(cfg["DHT20"]["bus"]), int(cfg["DHT20"]["address"]))
     threading.Thread(target=dht20_daemon, args=(temp_humidity,)).start()
+    dht = True
 except:
     print("no dht")
+    dht = False
 
 try:
     speed = as5600.as5600(int(cfg["AS5600speed"]["bus"]), int(cfg["AS5600speed"]["address"]))
     direction = as5600.as5600(int(cfg["AS5600direction"]["bus"]), int(cfg["AS5600direction"]["address"]))
     threading.Thread(target=wind_daemon, args=(speed, direction)).start()
+    wind = True
 except:
     print("no wind")
+    wind = False
 
 conn_params= {
 "user" : cfg["database"]["username"],
@@ -102,8 +111,6 @@ try:
             cur = conn.cursor()
             sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection, windgust) VALUES (?, ?, ?, ?, ?, ?, ?)"
             speed, direction, gust = get_wind()
-            list_wind_speed = []
-            list_wind_dir = []
             data = (cfg["ALL"]["stationid"], temp, humidity, speed, rainfall, direction, gust)
             cur.execute(sql, data)
             conn.commit()
