@@ -7,6 +7,7 @@ cfg.read(os.path.join(os.path.dirname(__file__), "settings.ini"))
 temp, humidity, wind_speed, wind_direction, rainfall, speed_rpm = None, None, None, None, None, None
 
 list_wind_speed = []
+list_wind_dir = []
 
 running = True
 
@@ -24,48 +25,53 @@ def dht20_daemon(sensor:dht20.DHT20):
         time.sleep(10)
     print("dht20_daemon done")
 
-def speed_daemon(sensor:as5600.as5600):
+def wind_daemon(speed_sensor:as5600.as5600, dir_sensor:as5600.as5600):
     global speed_rpm
     global wind_speed
     global list_wind_speed
+    global wind_direction
     while running:
         now_time = time.time()
-        now_angle = sensor.angle()
+        now_angle = speed_sensor.angle()
         time.sleep(0.05)
-        delta_angle = abs(sensor.angle()-now_angle)
+        delta_angle = abs(speed_sensor.angle()-now_angle)
         delta_time = time.time()-now_time
         rpm = ((delta_angle/360)/delta_time)*60
+
         if delta_angle < 300:
             wind_speed = rpm
             list_wind_speed.append(wind_speed)
-            time.sleep(0.5)
+
+        wind_dir = (dir_sensor.angle() + int(cfg["AS5600direction"]["offset"]) + 360) % 360
+        list_wind_dir.append(wind_dir)
+
+        time.sleep(0.5)
     print("speed_daemon done")
 
-def mean_speed():
-    global list_wind_speed
-    if list_wind_speed is not None and len(list_wind_speed) > 0:
-        data = list_wind_speed
-        list_wind_speed = []
-        total = 0
-        for speed in data:
-            total += speed
-        return total/len(data)
+def get_wind():
+    list_speed = list_wind_speed
+    list_dir = list_wind_dir
+    avg_speed = avg(list_speed)
+    if avg_speed > 1:
+        avg_dir = avg(list_dir)
     else:
-        return None
+        avg_dir = None
+    
+    gust_range = 3
+    total = 0
+    for i in range(gust_range):
+        highest = max(list_speed)
+        total += highest
+        list_speed.remove(highest)
+    gust = total/gust_range
+    return avg_speed, avg_dir, gust
 
-def direction_daemon(sensor:as5600.as5600):
-    global wind_direction
-    while running:
-        wind_direction = (sensor.angle() + int(cfg["AS5600direction"]["offset"]) + 360) % 360
-        time.sleep(0.5)
-    print("direction_daemon done")
-
-def get_direction():
-    speed = mean_speed()
-    if speed is None or speed < 0.5:
-        return None
-    else:
-        return wind_direction
+def avg(data):
+    total = 0
+    for speed in data:
+        total += speed
+    avg = total / len(data)
+    return avg
 
 try:
     temp_humidity = dht20.DHT20(int(cfg["DHT20"]["bus"]), int(cfg["DHT20"]["address"]))
@@ -73,19 +79,12 @@ try:
 except:
     print("no dht")
 
-
 try:
-    direction = as5600.as5600(int(cfg["AS5600speed"]["bus"]), int(cfg["AS5600speed"]["address"]))
-    threading.Thread(target=speed_daemon, args=(direction,)).start()
+    speed = as5600.as5600(int(cfg["AS5600speed"]["bus"]), int(cfg["AS5600speed"]["address"]))
+    direction = as5600.as5600(int(cfg["AS5600direction"]["bus"]), int(cfg["AS5600direction"]["address"]))
+    threading.Thread(target=wind_daemon, args=(speed, direction)).start()
 except:
-    print("no direction")
-
-try:
-    speed = as5600.as5600(int(cfg["AS5600direction"]["bus"]), int(cfg["AS5600direction"]["address"]))
-    threading.Thread(target=direction_daemon, args=(speed,)).start()
-except:
-    print("no speed")
-
+    print("no wind")
 
 conn_params= {
 "user" : cfg["database"]["username"],
@@ -96,14 +95,19 @@ conn_params= {
 
 conn = mariadb.connect(**conn_params)
 conn.auto_reconnect = True
-cur = conn.cursor()
 try:
     time.sleep(10)
     while running:
-        sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection) VALUES (?, ?, ?, ?, ?, ?)"
-        data = (cfg["ALL"]["stationid"], temp, humidity, mean_speed(), rainfall, get_direction())
-        cur.execute(sql, data)
-        conn.commit()
+        try:
+            cur = conn.cursor()
+            sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection, windgust) VALUES (?, ?, ?, ?, ?, ?, ?)"
+            speed, direction, gust = get_wind()
+            data = (cfg["ALL"]["stationid"], temp, humidity, speed, rainfall, direction, gust)
+            cur.execute(sql, data)
+            conn.commit()
+            cur.close()
+        except mariadb.Error as error:
+            conn = mariadb.connect(**conn_params)
         time.sleep(int(cfg["ALL"]["interval"]))
 except KeyboardInterrupt:
     print("Keyboard Interrupt Recieved. Wrapping things up.")
