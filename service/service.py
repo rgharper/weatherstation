@@ -29,6 +29,7 @@ def wind_daemon(speed_sensor:as5600.as5600, dir_sensor:as5600.as5600):
     global speed_rpm
     global wind_speed
     global list_wind_speed
+    global list_wind_dir
     global wind_direction
     while running:
         now_time = time.time()
@@ -50,6 +51,8 @@ def wind_daemon(speed_sensor:as5600.as5600, dir_sensor:as5600.as5600):
 
 def get_wind():
     if wind:
+        global list_wind_speed
+        global list_wind_dir
         list_speed = list_wind_speed
         list_dir = list_wind_dir
         list_wind_speed = []
