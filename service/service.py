@@ -102,6 +102,8 @@ try:
             cur = conn.cursor()
             sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection, windgust) VALUES (?, ?, ?, ?, ?, ?, ?)"
             speed, direction, gust = get_wind()
+            list_wind_speed = []
+            list_wind_dir = []
             data = (cfg["ALL"]["stationid"], temp, humidity, speed, rainfall, direction, gust)
             cur.execute(sql, data)
             conn.commit()
