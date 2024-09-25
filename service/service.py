@@ -63,13 +63,7 @@ def get_wind():
         else:
             avg_dir = None
         
-        gust_range = 3
-        total = 0
-        for i in range(gust_range):
-            highest = max(list_speed)
-            total += highest
-            list_speed.remove(highest)
-        gust = total/gust_range
+        gust = max(list_speed)
         return avg_speed, avg_dir, gust
     else:
         return None, None, None
