@@ -1,8 +1,10 @@
-import configparser, mariadb, os, time, threading
+import configparser, mariadb, os, time, threading, statistics
 from modules import dht20, as5600
 
 cfg = configparser.ConfigParser()
 cfg.read(os.path.join(os.path.dirname(__file__), "settings.ini"))
+
+directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
 
 temp, humidity, wind_speed, wind_direction, rainfall, speed_rpm = None, None, None, None, None, None
 
@@ -42,9 +44,10 @@ def wind_daemon(speed_sensor:as5600.as5600, dir_sensor:as5600.as5600):
         if delta_angle < 300:
             wind_speed = rpm
             list_wind_speed.append(wind_speed)
-
-        wind_dir = (dir_sensor.angle() + int(cfg["AS5600direction"]["offset"]) + 360) % 360
-        list_wind_dir.append(wind_dir)
+        if wind_speed > 1:
+            wind_dir_raw = (dir_sensor.angle() + int(cfg["AS5600direction"]["offset"]) + 360) % 360
+            dir = round((int((wind_dir_raw) + ((360 / 16) / 2)) % 360)*(16/360), 0)
+            list_wind_dir.append(dir)
 
         time.sleep(0.5)
     print("speed_daemon done")
@@ -58,15 +61,13 @@ def get_wind():
         list_wind_speed = []
         list_wind_dir = []
         avg_speed = avg(list_speed)
-        if avg_speed > 1:
-            avg_dir = avg(list_dir)
-        else:
-            avg_dir = None
+        
+        mode_dir = statistics.mode(list_dir)
         
         gust = max(list_speed)
-        return avg_speed, avg_dir, gust
+        return avg_speed, mode_dir, gust
     else:
-        return None, None, None
+        return None, None, None, None
 
 def avg(data):
     total = 0
