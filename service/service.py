@@ -66,7 +66,10 @@ def get_wind(wipe=True):
             list_wind_dir = []
         avg_speed = avg(list_speed)
         
-        mode_dir = statistics.mode(list_dir)
+        if list_dir is not None and list_dir != []:
+            mode_dir = statistics.mode(list_dir)
+        else:
+            mode_dir = None
         
         gust = max(list_speed)
         return avg_speed, mode_dir, gust
