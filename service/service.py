@@ -126,7 +126,7 @@ def api_wind():
     global wind
     speed, direction, gust = get_wind(wipe=False)
     if wind:
-        return f"{speed}\n{gust}\n{direction}", 200, {'ContentType':'text/plain'}
+        return f"{speed},{gust},{direction}", 200, {'ContentType':'text/plain'}
     else:
         return "not connected", 501, {'ContentType':'text/plain'}
 
