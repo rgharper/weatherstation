@@ -1,5 +1,8 @@
 import configparser, mariadb, os, time, threading, statistics
+from flask import Flask
 from modules import dht20, as5600
+
+flask_api = Flask(__name__)
 
 cfg = configparser.ConfigParser()
 cfg.read(os.path.join(os.path.dirname(__file__), "settings.ini"))
@@ -52,14 +55,15 @@ def wind_daemon(speed_sensor:as5600.as5600, dir_sensor:as5600.as5600):
         time.sleep(0.5)
     print("speed_daemon done")
 
-def get_wind():
+def get_wind(wipe=True):
     if wind:
         global list_wind_speed
         global list_wind_dir
         list_speed = list_wind_speed
         list_dir = list_wind_dir
-        list_wind_speed = []
-        list_wind_dir = []
+        if wipe:
+            list_wind_speed = []
+            list_wind_dir = []
         avg_speed = avg(list_speed)
         
         mode_dir = statistics.mode(list_dir)
@@ -67,7 +71,7 @@ def get_wind():
         gust = max(list_speed)
         return avg_speed, mode_dir, gust
     else:
-        return None, None, None, None
+        return None, None, None
 
 def avg(data):
     total = 0
@@ -75,6 +79,9 @@ def avg(data):
         total += speed
     avg = total / len(data)
     return avg
+
+def api_service():
+    flask_api.run(cfg["api"]["host"], int(cfg["api"]["port"]))
 
 try:
     temp_humidity = dht20.DHT20(int(cfg["DHT20"]["bus"]), int(cfg["DHT20"]["address"]))
@@ -93,6 +100,33 @@ except:
     print("no wind")
     wind = False
 
+@flask_api.route("/temperature", methods=['GET'])
+def api_temperature():
+    global dht
+    global temp
+    if dht:
+        return str(temp), 200, {'ContentType':'text/plain'}
+    else:
+        return "not connected", 501, {'ContentType':'text/plain'}
+    
+@flask_api.route("/humidity", methods=['GET'])
+def api_humidity():
+    global dht
+    global humidity
+    if dht:
+        return str(humidity), 200, {'ContentType':'text/plain'}
+    else:
+        return "not connected", 501, {'ContentType':'text/plain'}
+    
+@flask_api.route("/wind", methods=['GET'])
+def api_wind():
+    global wind
+    speed, direction, gust = get_wind(wipe=False)
+    if wind:
+        return f"{speed}\n{gust}\n{direction}", 200, {'ContentType':'text/plain'}
+    else:
+        return "not connected", 501, {'ContentType':'text/plain'}
+
 conn_params= {
 "user" : cfg["database"]["username"],
 "password" : cfg["database"]["password"],
@@ -102,6 +136,7 @@ conn_params= {
 
 conn = mariadb.connect(**conn_params)
 conn.auto_reconnect = True
+threading.Thread(target=api_service, daemon=True).start()
 try:
     time.sleep(10)
     while running:
