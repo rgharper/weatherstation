@@ -3,3 +3,4 @@
 /service/env
 /service/settings.ini
 service/modules/__pycache__
+service/weather.service
