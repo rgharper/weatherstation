@@ -136,9 +136,11 @@ conn_params= {
 "host" : cfg["database"]["address"],
 "database" : cfg["database"]["database"]
 }
-
-conn = mariadb.connect(**conn_params)
-conn.auto_reconnect = True
+try:
+    conn = mariadb.connect(**conn_params)
+    conn.auto_reconnect = True
+except mariadb.Error as error:
+    print("Couldn't connect to database. Retrying shortly.\n" + str(error))
 threading.Thread(target=api_service, daemon=True).start()
 try:
     time.sleep(10)
