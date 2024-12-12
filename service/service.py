@@ -153,8 +153,9 @@ try:
             cur.execute(sql, data)
             conn.commit()
             cur.close()
-        except mariadb.OperationalError as error:
+        except Exception as error:
             conn = mariadb.connect(**conn_params)
+            print(str(error))
         time.sleep(int(cfg["ALL"]["interval"]))
 except KeyboardInterrupt:
     print("Keyboard Interrupt Recieved. Wrapping things up.")
