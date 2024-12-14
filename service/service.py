@@ -138,6 +138,7 @@ conn_params= {
 }
 try:
     conn = mariadb.connect(**conn_params)
+    print(mariadb.client_version_info)
     conn.auto_reconnect = True
 except mariadb.OperationalError as error:
     print("Couldn't connect to database. Retrying shortly.\n" + str(error))
@@ -155,6 +156,7 @@ try:
             cur.close()
         except Exception as error:
             conn = mariadb.connect(**conn_params)
+
             print(str(error))
         time.sleep(int(cfg["ALL"]["interval"]))
 except KeyboardInterrupt:
