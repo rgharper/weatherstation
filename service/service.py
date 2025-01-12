@@ -154,10 +154,14 @@ try:
             cur.execute(sql, data)
             conn.commit()
             cur.close()
-        except (mariadb.InterfaceError, mariadb.OperationalError, Exception) as e:
-            conn = mariadb.connect(**conn_params)
-            print("Caught Exception:")
+        except Exception as e:
+            print("Reconnecting due to exception:")
             print(str(e))
+            try:
+                conn = mariadb.connect(**conn_params)
+            except Exception as e:
+                print("Reconnect failed (retrying soon) with exception:")
+                print(str(e))
         time.sleep(int(cfg["ALL"]["interval"]))
 except KeyboardInterrupt:
     print("Keyboard Interrupt Recieved. Wrapping things up.")
