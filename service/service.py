@@ -88,7 +88,7 @@ def api_service():
 
 try:
     temp_humidity = dht20.DHT20(int(cfg["DHT20"]["bus"]), int(cfg["DHT20"]["address"]))
-    threading.Thread(target=dht20_daemon, args=(temp_humidity,)).start()
+    threading.Thread(target=dht20_daemon, args=(temp_humidity,), daemon=True).start()
     dht = True
 except:
     print("no dht")
@@ -97,7 +97,7 @@ except:
 try:
     speed = as5600.as5600(int(cfg["AS5600speed"]["bus"]), int(cfg["AS5600speed"]["address"]))
     direction = as5600.as5600(int(cfg["AS5600direction"]["bus"]), int(cfg["AS5600direction"]["address"]))
-    threading.Thread(target=wind_daemon, args=(speed, direction)).start()
+    threading.Thread(target=wind_daemon, args=(speed, direction), daemon=True).start()
     wind = True
 except:
     print("no wind")
@@ -156,10 +156,11 @@ try:
             cur.close()
         except (mariadb.InterfaceError, mariadb.OperationalError, Exception) as e:
             conn = mariadb.connect(**conn_params)
-
+            print("Caught Exception:")
             print(str(e))
         time.sleep(int(cfg["ALL"]["interval"]))
 except KeyboardInterrupt:
     print("Keyboard Interrupt Recieved. Wrapping things up.")
     running=False
     conn.close()
+print("Service main loop has exited")
