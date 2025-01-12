@@ -1,4 +1,4 @@
-import configparser, mariadb, os, time, threading, statistics, datetime, math
+import configparser, mariadb, os, time, threading, statistics, croniter, datetime
 from flask import Flask
 from modules import dht20, as5600
 
@@ -130,19 +130,25 @@ def api_wind():
     else:
         return "not connected", 501, {'ContentType':'text/plain'}
 
-def next_ten(): # wait until the next multiple of 10 minutes (6:02 waits until 6:10)
-    current = datetime.datetime.now()
-    minute = math.ceil(current.minute/10)*10
-    if minute == 60:
-        hour = current.hour+1
-        minute = 0
-    else:
-        hour = current.hour
-    future = current.replace(microsecond=0, second=0, minute=minute, hour=hour)
-    delta = future - current
-    print(f"Waiting {delta.total_seconds()} until {future.isoformat()}...")
-    time.sleep(delta.total_seconds())
-    print(f"Continuing at {datetime.datetime.now().isoformat()}")
+# def next_ten(): # wait until the next multiple of 10 minutes (6:02 waits until 6:10)
+#     current = datetime.datetime.now()
+#     minute = math.ceil(current.minute/10)*10
+#     if minute == 60:
+#         hour = current.hour+1
+#         minute = 0
+#     else:
+#         hour = current.hour
+#     if hour == 24:
+#         day = current.day+1
+#         hour = 0
+#     else:
+#         day = current.day
+#     if day > current.
+#     future = current.replace(microsecond=0, second=0, minute=minute, hour=hour)
+#     delta = future - current
+#     print(f"Waiting {delta.total_seconds()} until {future.isoformat()}...")
+#     time.sleep(delta.total_seconds())
+#     print(f"Continuing at {datetime.datetime.now().isoformat()}")
 
 conn_params= {
 "user" : cfg["database"]["username"],
@@ -158,8 +164,16 @@ except mariadb.OperationalError as error:
     print("Couldn't connect to database. Retrying shortly.\n" + str(error))
 threading.Thread(target=api_service, daemon=True).start()
 try:
-    next_ten()
+    cron = croniter.croniter(cfg["ALL"]["cron"])
+    # next_ten()
     while running:
+        current = datetime.datetime.now()
+        next_time = datetime.datetime.fromtimestamp(cron.next())
+        delta = next_time - current
+        seconds = delta.total_seconds()
+        print(f"Waiting {seconds}")
+        time.sleep(seconds)
+        print(next_time)
         try:
             cur = conn.cursor()
             sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection, windgust) VALUES (?, ?, ?, ?, ?, ?, ?)"
@@ -176,7 +190,7 @@ try:
             except Exception as e:
                 print("Reconnect failed (retrying soon) with exception:")
                 print(str(e))
-        next_ten()
+        # next_ten()
 except KeyboardInterrupt:
     print("Keyboard Interrupt Recieved. Wrapping things up.")
     running=False
