@@ -1,4 +1,4 @@
-import configparser, mariadb, os, time, threading, statistics
+import configparser, mariadb, os, time, threading, statistics, datetime, math
 from flask import Flask
 from modules import dht20, as5600
 
@@ -130,6 +130,20 @@ def api_wind():
     else:
         return "not connected", 501, {'ContentType':'text/plain'}
 
+def next_ten(): # wait until the next multiple of 10 minutes (6:02 waits until 6:10)
+    current = datetime.datetime.now()
+    minute = math.ceil(current.minute/10)*10
+    if minute == 60:
+        hour = current.hour+1
+        minute = 0
+    else:
+        hour = current.hour
+    future = current.replace(microsecond=0, second=0, minute=minute, hour=hour)
+    delta = future - current
+    print(f"Waiting {delta.total_seconds()} until {future.isoformat()}...")
+    time.sleep(delta.total_seconds())
+    print(f"Continuing at {datetime.datetime.now().isoformat()}")
+
 conn_params= {
 "user" : cfg["database"]["username"],
 "password" : cfg["database"]["password"],
@@ -144,7 +158,7 @@ except mariadb.OperationalError as error:
     print("Couldn't connect to database. Retrying shortly.\n" + str(error))
 threading.Thread(target=api_service, daemon=True).start()
 try:
-    time.sleep(10)
+    next_ten()
     while running:
         try:
             cur = conn.cursor()
@@ -162,7 +176,7 @@ try:
             except Exception as e:
                 print("Reconnect failed (retrying soon) with exception:")
                 print(str(e))
-        time.sleep(int(cfg["ALL"]["interval"]))
+        next_ten()
 except KeyboardInterrupt:
     print("Keyboard Interrupt Recieved. Wrapping things up.")
     running=False
