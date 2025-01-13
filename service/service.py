@@ -49,7 +49,7 @@ def wind_daemon(speed_sensor:as5600.as5600, dir_sensor:as5600.as5600):
             list_wind_speed.append(wind_speed)
         if wind_speed > 1:
             wind_dir_raw = (dir_sensor.angle() + int(cfg["AS5600direction"]["offset"]) + 360) % 360
-            dir = round((int((wind_dir_raw) + ((360 / 16) / 2)) % 360)*(16/360), 0)
+            dir = round(wind_dir_raw / 22.5) % 16
             list_wind_dir.append(dir)
 
         time.sleep(0.5)
