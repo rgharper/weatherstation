@@ -161,8 +161,10 @@ try:
     conn = mariadb.connect(**conn_params)
     print(mariadb.client_version_info)
     conn.auto_reconnect = True
+    connected = True
 except mariadb.OperationalError as error:
     print("Couldn't connect to database. Retrying shortly.\n" + str(error))
+    connected = False
 
 
 default_sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection, windgust, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, FROM_UNIXTIME(?))"
@@ -184,6 +186,8 @@ try:
             sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection, windgust, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, FROM_UNIXTIME(?))"
             speed, direction, gust = get_wind()
             data = (cfg["ALL"]["stationid"], temp, humidity, speed, rainfall, direction, gust, datetime.datetime.now().timestamp())
+            if not connected:
+                raise Exception
             cur = conn.cursor()
             cur.execute(sql, data)
             conn.commit()
@@ -192,19 +196,22 @@ try:
             buffer = []
         except Exception as e:
             buffer.append(data)
-            print("Reconnecting due to exception:")
+            print("Data added to buffer, Reconnecting due to exception:")
             print(str(e))
             try:
                 conn = mariadb.connect(**conn_params)
+                connected = True
                 print("Reconnect successful. Executing buffered queries")
                 cur = conn.cursor()
                 for old_query in buffer:
-                    cur.execute(sql, data)
-                conn.commit()
+                    print(f"Executing: {old_query})")
+                    cur.execute(sql, old_query)
+                    conn.commit()
                 cur.close()
                 
                 buffer = []
             except Exception as e:
+                connected = False
                 print("Reconnect failed (retrying soon) with exception:")
                 print(str(e))
         # next_ten()
