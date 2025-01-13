@@ -156,12 +156,18 @@ conn_params= {
 "host" : cfg["database"]["address"],
 "database" : cfg["database"]["database"]
 }
+
 try:
     conn = mariadb.connect(**conn_params)
     print(mariadb.client_version_info)
     conn.auto_reconnect = True
 except mariadb.OperationalError as error:
     print("Couldn't connect to database. Retrying shortly.\n" + str(error))
+
+
+default_sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection, windgust, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, FROM_UNIXTIME(?))"
+buffer = []
+
 threading.Thread(target=api_service, daemon=True).start()
 try:
     cron = croniter.croniter(cfg["ALL"]["cron"])
@@ -175,18 +181,29 @@ try:
         time.sleep(seconds)
         print(next_time)
         try:
-            cur = conn.cursor()
-            sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection, windgust) VALUES (?, ?, ?, ?, ?, ?, ?)"
+            sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection, windgust, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, FROM_UNIXTIME(?))"
             speed, direction, gust = get_wind()
-            data = (cfg["ALL"]["stationid"], temp, humidity, speed, rainfall, direction, gust)
+            data = (cfg["ALL"]["stationid"], temp, humidity, speed, rainfall, direction, gust, datetime.datetime.now().timestamp())
+            cur = conn.cursor()
             cur.execute(sql, data)
             conn.commit()
             cur.close()
+
+            buffer = []
         except Exception as e:
+            buffer.append(data)
             print("Reconnecting due to exception:")
             print(str(e))
             try:
                 conn = mariadb.connect(**conn_params)
+                print("Reconnect successful. Executing buffered queries")
+                cur = conn.cursor()
+                for old_query in buffer:
+                    cur.execute(sql, data)
+                conn.commit()
+                cur.close()
+                
+                buffer = []
             except Exception as e:
                 print("Reconnect failed (retrying soon) with exception:")
                 print(str(e))
