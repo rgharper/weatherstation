@@ -1,5 +1,6 @@
 import configparser, mariadb, os, time, threading, statistics, croniter, datetime
 from flask import Flask
+import flask
 from modules import dht20, as5600
 
 flask_api = Flask(__name__)
@@ -27,7 +28,7 @@ def dht20_daemon(sensor:dht20.DHT20):
     while running:
         temp = sensor.get_temperature()
         humidity = sensor.get_humidity()
-        time.sleep(10)
+        time.sleep(1)
     print("dht20_daemon done")
 
 def wind_daemon(speed_sensor:as5600.as5600, dir_sensor:as5600.as5600):
@@ -108,7 +109,10 @@ def api_temperature():
     global dht
     global temp
     if dht:
-        return str(temp), 200, {'ContentType':'text/plain'}
+        response = flask.Response(str(temp))
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Content-Type', 'text/plain')
+        return response
     else:
         return "not connected", 501, {'ContentType':'text/plain'}
     
@@ -117,7 +121,10 @@ def api_humidity():
     global dht
     global humidity
     if dht:
-        return str(humidity), 200, {'ContentType':'text/plain'}
+        response = flask.Response(str(humidity))
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Content-Type', 'text/plain')
+        return response
     else:
         return "not connected", 501, {'ContentType':'text/plain'}
     
@@ -126,7 +133,10 @@ def api_wind():
     global wind
     speed, direction, gust = get_wind(wipe=False)
     if wind:
-        return f"{speed},{gust},{direction}", 200, {'ContentType':'text/plain'}
+        response = flask.Response(f"{speed},{gust},{direction}")
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Content-Type', 'text/plain')
+        return response
     else:
         return "not connected", 501, {'ContentType':'text/plain'}
 
