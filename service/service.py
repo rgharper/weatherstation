@@ -2,6 +2,7 @@ import configparser, mariadb, os, time, threading, statistics, croniter, datetim
 from flask import Flask
 import flask
 from modules import dht20, as5600
+from requests import post
 
 flask_api = Flask(__name__)
 
@@ -19,6 +20,10 @@ running = True
 
 if len(cfg) <= 2:
     raise(SystemExit("No sensors defined"))
+
+def errlogger(stationId, exception):
+    message = f"Station {stationId} has encountered an exception: {exception}"
+    post("https://discord.com/api/webhooks/1215230645442449408/uB_yJmkq5yeG1steuWUwF-B0chOB-etOSXtBQ4H7N9kUTO8z_5kDSioxSyjTkVbn5hZa", data={"content":message})
 
 def dht20_daemon(sensor:dht20.DHT20):
     global humidity
@@ -242,7 +247,7 @@ try:
                     cur = conn.cursor()
                     cur.execute(sql, new_max_temp)
                     conn.commit()
-                    print("new max record added")
+                    errlogger(cfg["ALL"]["stationid"], "new max record added")
                     sql = "DELETE FROM weatherstation.temperature_records WHERE stationId = ? AND temperature < ? AND year(timestamp) = year(now()) order by temperature desc limit 1"
                     cur.execute(sql, (new_max_temp[0], new_max_temp[1]))
                     conn.commit()
@@ -256,7 +261,7 @@ try:
                     cur = conn.cursor()
                     cur.execute(sql, new_min_temp)
                     conn.commit()
-                    print("new min record added")
+                    errlogger(cfg["ALL"]["stationid"], "new min record added")
                     sql = "DELETE FROM weatherstation.temperature_records WHERE stationId = ? AND temperature > ? AND year(timestamp) = year(now()) order by temperature asc limit 1"
                     cur.execute(sql, (new_min_temp[0], new_min_temp[1]))
                     conn.commit()
@@ -281,6 +286,7 @@ try:
             except Exception as e:
                 print("Failed to update max/min")
                 print(str(e))
+                errlogger(cfg["ALL"]["stationid"], str(e))
 
             # log weather data
             sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection, windgust, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, FROM_UNIXTIME(?))"
