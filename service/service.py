@@ -28,16 +28,19 @@ def dht20_daemon(sensor:dht20.DHT20):
     while running:
         temp = sensor.get_temperature()
         humidity = sensor.get_humidity()
-        if temp > max_temp:
-            global new_max_temp
-            global max_temp
-            max_temp = temp
-            new_max_temp = (cfg["ALL"]["stationid"], temp, datetime.datetime.now().timestamp())
-        if temp < min_temp:
-            global new_min_temp
-            global min_temp
-            min_temp = temp
-            new_min_temp = (cfg["ALL"]["stationid"], temp, datetime.datetime.now().timestamp())
+        global max_temp
+        global min_temp
+        try:
+            if temp > max_temp:
+                global new_max_temp
+                max_temp = temp
+                new_max_temp = (cfg["ALL"]["stationid"], temp, datetime.datetime.now().timestamp())
+            if temp < min_temp:
+                global new_min_temp
+                min_temp = temp
+                new_min_temp = (cfg["ALL"]["stationid"], temp, datetime.datetime.now().timestamp())
+        except:
+            pass
         time.sleep(1)
     print("dht20_daemon done")
 
@@ -182,6 +185,17 @@ try:
     print(mariadb.client_version_info)
     conn.auto_reconnect = True
     connected = True
+    sql = "SELECT temperature from weatherstation.temperature_records where stationId = ? and year(timestamp) = year(now()) order by temperature desc"
+    cur = conn.cursor()
+    cur.execute(sql, (cfg["ALL"]["stationid"],))
+    data = cur.fetchall()
+    print(data)
+    global max_temp 
+    max_temp = float(data[0][0])
+    global min_temp
+    min_temp = float(data[1][0])
+    print(max_temp)
+    print(min_temp)
 except mariadb.OperationalError as error:
     print("Couldn't connect to database. Retrying shortly.\n" + str(error))
     connected = False
@@ -226,11 +240,12 @@ try:
                 sql = "SELECT temperature from weatherstation.temperature_records where stationId = ? and year(timestamp) = year(now()) order by temperature desc"
                 cur = conn.cursor()
                 cur.execute(sql, (cfg["ALL"]["stationid"],))
+                print(data)
                 data = cur.fetchall()
-                global max_temp 
                 max_temp = data[0]['temperature']
-                global min_temp
                 min_temp = data[1]['temperature']
+                print(max_temp)
+                print(min_temp)
 
             # log weather data
             sql = "INSERT INTO weatherstation.weather (stationId, temperature, humidity, windspeed, rainfall, winddirection, windgust, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, FROM_UNIXTIME(?))"
