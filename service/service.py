@@ -230,12 +230,18 @@ try:
                     cur = conn.cursor()
                     cur.execute(sql, new_max_temp)
                     conn.commit()
+                    sql = "DELETE FROM weatherstation.temperature_records WHERE stationId = ? AND temperature < ? AND year(timestamp) = year(now()) order by temperature desc limit 1"
+                    cur.execute(sql, new_max_temp)
+                    conn.commit()
                     cur.close()
                     new_max_temp = None
 
                 if new_min_temp is not None and connected:
                     sql = "INSERT into weatherstation.temperature_records (stationId, temperature, timestamp) VALUES (?, ?, FROM_UNIXTIME(?))"
                     cur = conn.cursor()
+                    cur.execute(sql, new_min_temp)
+                    conn.commit()
+                    sql = "DELETE FROM weatherstation.temperature_records WHERE stationId = ? AND temperature > ? AND year(timestamp) = year(now()) order by temperature asc limit 1"
                     cur.execute(sql, new_min_temp)
                     conn.commit()
                     cur.close()
