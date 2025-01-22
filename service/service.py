@@ -30,15 +30,24 @@ def dht20_daemon(sensor:dht20.DHT20):
         humidity = sensor.get_humidity()
         global max_temp
         global min_temp
+        global new_min_temp
+        global new_max_temp
+        global next_is_record
         try:
-            if temp > max_temp:
-                global new_max_temp
+            if next_is_record:
                 max_temp = temp
                 new_max_temp = (cfg["ALL"]["stationid"], temp, datetime.datetime.now().timestamp())
-            if temp < min_temp:
-                global new_min_temp
                 min_temp = temp
                 new_min_temp = (cfg["ALL"]["stationid"], temp, datetime.datetime.now().timestamp())
+            else:
+                if temp > max_temp:
+                    print("new max record")
+                    max_temp = temp
+                    new_max_temp = (cfg["ALL"]["stationid"], temp, datetime.datetime.now().timestamp())
+                if temp < min_temp:
+                    print("new min record")
+                    min_temp = temp
+                    new_min_temp = (cfg["ALL"]["stationid"], temp, datetime.datetime.now().timestamp())
         except:
             pass
         time.sleep(1)
@@ -187,6 +196,8 @@ global new_max_temp
 new_max_temp = None
 global new_min_temp
 new_min_temp = None
+global next_is_record
+next_is_record = False
 
 try:
     conn = mariadb.connect(**conn_params)
@@ -226,24 +237,30 @@ try:
             try:
                 # get max / min for the year
                 if new_max_temp is not None and connected:
+                    print("new max record")
                     sql = "INSERT into weatherstation.temperature_records (stationId, temperature, timestamp) VALUES (?, ?, FROM_UNIXTIME(?))"
                     cur = conn.cursor()
                     cur.execute(sql, new_max_temp)
                     conn.commit()
+                    print("new max record added")
                     sql = "DELETE FROM weatherstation.temperature_records WHERE stationId = ? AND temperature < ? AND year(timestamp) = year(now()) order by temperature desc limit 1"
-                    cur.execute(sql, new_max_temp)
+                    cur.execute(sql, (new_max_temp[0], new_max_temp[1]))
                     conn.commit()
+                    print("old max record deleted")
                     cur.close()
                     new_max_temp = None
 
                 if new_min_temp is not None and connected:
+                    print("new min record")
                     sql = "INSERT into weatherstation.temperature_records (stationId, temperature, timestamp) VALUES (?, ?, FROM_UNIXTIME(?))"
                     cur = conn.cursor()
                     cur.execute(sql, new_min_temp)
                     conn.commit()
+                    print("new min record added")
                     sql = "DELETE FROM weatherstation.temperature_records WHERE stationId = ? AND temperature > ? AND year(timestamp) = year(now()) order by temperature asc limit 1"
-                    cur.execute(sql, new_min_temp)
+                    cur.execute(sql, (new_min_temp[0], new_min_temp[1]))
                     conn.commit()
+                    print("old min record deleted")
                     cur.close()
                     new_min_temp = None
                 
@@ -251,14 +268,16 @@ try:
                     sql = "SELECT temperature from weatherstation.temperature_records where stationId = ? and year(timestamp) = year(now()) order by temperature desc"
                     cur = conn.cursor()
                     cur.execute(sql, (cfg["ALL"]["stationid"],))
-                    print(data)
                     data = cur.fetchall()
-                    max_temp = float(data[0][0])
-                    min_temp = float(data[1][0])
-                    print(max_temp)
-                    print(min_temp)
-                    print(max_temp)
-                    print(min_temp)
+                    print(data)
+                    if len(data) > 0:
+                        max_temp = float(data[0][0])
+                        min_temp = float(data[-1][0])
+                        print(max_temp)
+                        print(min_temp)
+                        next_is_record = False
+                    else:
+                        next_is_record = True
             except Exception as e:
                 print("Failed to update max/min")
                 print(str(e))
