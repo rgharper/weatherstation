@@ -56,6 +56,10 @@ def dht20_daemon(sensor:dht20.DHT20):
         except:
             pass
         time.sleep(1)
+
+        with open("/home/rohan/ambient_temp", 'w') as f:
+            f.write(str(int(temp*1000)))
+
     print("dht20_daemon done")
 
 def wind_daemon(speed_sensor:as5600.as5600, dir_sensor:as5600.as5600):
