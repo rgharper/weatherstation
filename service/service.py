@@ -69,19 +69,35 @@ def wind_daemon(speed_sensor:as5600.as5600, dir_sensor:as5600.as5600):
     global list_wind_dir
     global wind_direction
     while running:
-        now_time = time.time()
-        now_angle = speed_sensor.angle()
-        time.sleep(0.5)
-        delta_angle = (now_angle-speed_sensor.angle()) % 360
-        delta_time = time.time()-now_time
-        rpm = (delta_angle/360)/(delta_time/60)
+        first_time = time.time()
+        first_angle = speed_sensor.angle()
+        time.sleep(0.25)
+        second_time = time.time()
+        second_angle = speed_sensor.angle()
+        time.sleep(0.25)
+        third_time = time.time()
+        third_angle = speed_sensor.angle()
 
-        wind_speed = rpm
-        list_wind_speed.append(wind_speed)
-        if wind_speed > 1:
-            wind_dir_raw = (dir_sensor.angle() + int(cfg["AS5600direction"]["offset"]) + 360) % 360
-            dir = round(wind_dir_raw / 22.5) % 16
-            list_wind_dir.append(dir)
+        # what direction is it turning
+        if first_angle > second_angle and second_angle > third_angle:
+            delta_angle = (first_angle-third_angle)
+            ignore = False
+        elif first_angle < second_angle and second_angle < third_angle:
+            delta_angle = (third_angle-first_angle)
+            ignore = False
+        else:
+            ignore = True
+
+        if not ignore:
+            delta_time = time.time()-first_time
+            rpm = (delta_angle/360)/(delta_time/60)
+            wind_speed = rpm
+            list_wind_speed.append(wind_speed)
+            
+            if wind_speed > 1:
+                wind_dir_raw = (dir_sensor.angle() + int(cfg["AS5600direction"]["offset"]) + 360) % 360
+                dir = round(wind_dir_raw / 22.5) % 16
+                list_wind_dir.append(dir)
 
         time.sleep(0.5)
     print("speed_daemon done")
@@ -164,7 +180,7 @@ def api_wind():
     global wind_speed
     speed, direction, gust = get_wind(wipe=False)
     if wind:
-        response = flask.Response(f"{wind_speed},{gust},{direction}")
+        response = flask.Response(f"{speed},{gust},{direction}")
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Content-Type', 'text/plain')
         return response
