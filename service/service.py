@@ -161,9 +161,10 @@ def api_humidity():
 @flask_api.route("/wind", methods=['GET'])
 def api_wind():
     global wind
+    global wind_speed
     speed, direction, gust = get_wind(wipe=False)
     if wind:
-        response = flask.Response(f"{speed},{gust},{direction}")
+        response = flask.Response(f"{wind_speed},{gust},{direction}")
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Content-Type', 'text/plain')
         return response
