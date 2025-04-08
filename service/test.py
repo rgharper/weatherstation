@@ -82,8 +82,8 @@ except:
 
 try:
     while running:
-        time.sleep(10)
-        print(f"{cfg['ALL']['stationid']}, {temp}, {humidity}, {mean_speed()}, {rainfall}, {wind_direction}")
+        time.sleep(1)
+        print(f"{cfg['ALL']['stationid']}, {temp}, {humidity}, {mean_speed()}, {wind_speed}, {rainfall}, {wind_direction}")
 except KeyboardInterrupt:
     print("Keyboard Interrupt Recieved. Wrapping things up.")
     running=False
