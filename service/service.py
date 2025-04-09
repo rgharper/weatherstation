@@ -71,10 +71,10 @@ def wind_daemon(speed_sensor:as5600.as5600, dir_sensor:as5600.as5600):
     while running:
         first_time = time.time()
         first_angle = speed_sensor.angle()
-        time.sleep(0.25)
+        time.sleep(0.1)
         second_time = time.time()
         second_angle = speed_sensor.angle()
-        time.sleep(0.25)
+        time.sleep(0.1)
         third_time = time.time()
         third_angle = speed_sensor.angle()
 
@@ -89,8 +89,8 @@ def wind_daemon(speed_sensor:as5600.as5600, dir_sensor:as5600.as5600):
             ignore = True
 
         if not ignore:
-            delta_time = time.time()-first_time
-            rpm = (delta_angle/360)/(delta_time/60)
+            delta_time = third_time - first_time
+            rpm = (delta_angle / 360) / (delta_time / 60)
             wind_speed = rpm
             list_wind_speed.append(wind_speed)
             
@@ -177,7 +177,6 @@ def api_humidity():
 @flask_api.route("/wind", methods=['GET'])
 def api_wind():
     global wind
-    global wind_speed
     speed, direction, gust = get_wind(wipe=False)
     if wind:
         response = flask.Response(f"{speed},{gust},{direction}")
